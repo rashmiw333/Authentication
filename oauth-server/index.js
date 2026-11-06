@@ -4,17 +4,65 @@ const cors = require("cors");
 require("dotenv").config();
 const {setSecureCookie} =require("./services") 
 const cookieParser = require("cookie-parser");
+const {verifyAccessToken} = require("./middleware/index.js");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+//app.use(cors());
 
-// app.get("/auth/google/callback", (req, res) => {
-//   res.send("Google callback route is working!");
-// });
+app.use(cors({
+  credentials: true,
+  origin: "http://localhost:3000"
+}));
+app.use(cookieParser());
+
 
 app.get("/", (req, res) => {
   res.send("<h1>Welcome to OAuth API Server.</h1>");
+});
+
+app.get("/user/profile/github", verifyAccessToken,async (req, res) => {
+  try {
+    const { access_token } = req.cookies;
+
+    const githubUserDataResponse = await axios.get(
+      "https://api.github.com/user",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    res.json({ user: githubUserDataResponse.data });
+
+  } catch (error) {
+    res.status(500).json({
+      error: "Could not fetch user Github profile.",
+    });
+  }
+});
+
+app.get("/user/profile/google",verifyAccessToken, async (req, res) => {
+  try {
+    const { access_token } = req.cookies;
+
+    const googleUserDataResponse = await axios.get(
+      "https://www.googleapis.com/oauth2/v2/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    );
+
+    res.json({ user: googleUserDataResponse.data });
+
+  } catch (error) {
+    res.status(500).json({
+      error: "Could not fetch user Google profile.",
+    });
+  }
 });
 
 app.get("/auth/github", (req, res) => {
@@ -23,7 +71,7 @@ app.get("/auth/github", (req, res) => {
   res.redirect(githubAuthUrl);
 });
 
-;
+
 app.get("/auth/github/callback", async (req, res) => {
   const { code } = req.query;
 
@@ -72,7 +120,11 @@ app.get("/auth/github/callback", async (req, res) => {
   }
 });
 
+
+
 //===================google
+
+
 
 app.get("/auth/google", (req, res) => {
   const googleAuthUrl = new URL(
@@ -122,14 +174,13 @@ app.get("/auth/google/callback", async (req, res) => {
     );
 
     const accessToken = tokenResponse.data.access_token;
-
-     console.log(accessToken);
+    console.log(accessToken);
 
     setSecureCookie(res,accessToken);
 
     // Get Google user details
     const userResponse = await axios.get(
-      "https://openidconnect.googleapis.com/v1/userinfo",
+      "https://openidconnect.googleapis.com/v2/userinfo",
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
