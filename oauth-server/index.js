@@ -2,7 +2,8 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 require("dotenv").config();
-
+const {setSecureCookie} =require("./services") 
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -22,31 +23,7 @@ app.get("/auth/github", (req, res) => {
   res.redirect(githubAuthUrl);
 });
 
-// app.get("/auth/github/callback", async (req, res) => {
-//   const { code } = req.query;
-
-//   try {
-//     const tokenResponse = await axios.post(
-//       "https://github.com/login/oauth/access_token",
-//       {
-//         client_id: process.env.GITHUB_CLIENT_ID,
-//         client_secret: process.env.GITHUB_CLIENT_SECRET,
-//         code,
-//       },
-//       {
-//         headers: { Accept: "application/json" },
-//       }
-//     );
-
-//     const accessToken = tokenResponse.data.access_token;
-//     res.cookie("access_token", accessToken);
-//     return res.redirect(`${process.env.FRONTEND_URL}/github.com/${username}`);
-// } catch (error) {
-//   res.status(500).json(error);
-// }
-// });
-
-
+;
 app.get("/auth/github/callback", async (req, res) => {
   const { code } = req.query;
 
@@ -67,6 +44,10 @@ app.get("/auth/github/callback", async (req, res) => {
     );
 
     const accessToken = tokenResponse.data.access_token;
+
+     console.log(accessToken);
+
+    setSecureCookie(res,accessToken);
 
     // Get GitHub user details
     const userResponse = await axios.get(
@@ -91,11 +72,7 @@ app.get("/auth/github/callback", async (req, res) => {
   }
 });
 
-
-
 //===================google
-
-
 
 app.get("/auth/google", (req, res) => {
   const googleAuthUrl = new URL(
@@ -145,6 +122,10 @@ app.get("/auth/google/callback", async (req, res) => {
     );
 
     const accessToken = tokenResponse.data.access_token;
+
+     console.log(accessToken);
+
+    setSecureCookie(res,accessToken);
 
     // Get Google user details
     const userResponse = await axios.get(
